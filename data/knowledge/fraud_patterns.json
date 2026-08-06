@@ -1,0 +1,191 @@
+[
+  {
+    "id": "fraud_001",
+    "title": "Card-Not-Present Fraud",
+    "category": "payment_fraud",
+    "description": "Fraud involving payment card information used in an online or other remote transaction where the physical card is not presented. Stolen card details can be used to attempt unauthorized purchases.",
+    "indicators": [
+      "Unauthorized online payment activity",
+      "Payment behavior inconsistent with expected customer activity",
+      "Repeated suspicious payment attempts"
+    ],
+    "recommended_actions": [
+      "Apply additional verification to suspicious payments",
+      "Review related transaction activity",
+      "Use fraud detection controls before approving high-risk payments"
+    ],
+    "source": "Stripe",
+    "source_url": "https://docs.stripe.com/disputes/prevention/fraud-types"
+  },
+  {
+    "id": "fraud_002",
+    "title": "Account Takeover",
+    "category": "account_fraud",
+    "description": "Account takeover occurs when an unauthorized person gains access to another person's online account with the goal of stealing money or information.",
+    "indicators": [
+      "Unauthorized withdrawals or expenditures",
+      "Unexpected account activity",
+      "Suspicious changes involving an existing financial account"
+    ],
+    "recommended_actions": [
+      "Use multi-factor authentication",
+      "Monitor accounts for irregular activity",
+      "Contact the financial institution when unauthorized activity is detected"
+    ],
+    "source": "Federal Bureau of Investigation",
+    "source_url": "https://www.fbi.gov/investigate/cyber/alerts/2025/account-takeover-fraud-via-impersonation-of-financial-institution-support"
+  },
+  {
+    "id": "fraud_003",
+    "title": "Card Testing",
+    "category": "payment_fraud",
+    "description": "Card testing is fraudulent activity in which stolen or generated card information is tested to determine whether the card details are valid before they are used for other fraudulent purchases.",
+    "indicators": [
+      "Spike in failed or blocked payments",
+      "Large numbers of card validation attempts",
+      "Repeated small payment attempts",
+      "Unusually high payment failure rates"
+    ],
+    "recommended_actions": [
+      "Apply rate limits",
+      "Use CAPTCHA where appropriate",
+      "Limit repeated card or customer creation attempts",
+      "Monitor payment failures and authorization activity"
+    ],
+    "source": "Stripe",
+    "source_url": "https://docs.stripe.com/disputes/prevention/card-testing"
+  },
+  {
+    "id": "fraud_004",
+    "title": "Identity Fraud",
+    "category": "identity_fraud",
+    "description": "Identity theft occurs when someone uses another person's personal or financial information without permission. Stolen information may be used to make purchases, open accounts, or impersonate the victim.",
+    "indicators": [
+      "Accounts or transactions the customer does not recognize",
+      "Unexpected changes involving financial accounts",
+      "Use of personal or financial information without authorization"
+    ],
+    "recommended_actions": [
+      "Review financial accounts and credit reports",
+      "Report confirmed identity theft",
+      "Consider fraud alerts or credit freezes when appropriate",
+      "Secure accounts that may have been compromised"
+    ],
+    "source": "Federal Trade Commission",
+    "source_url": "https://consumer.ftc.gov/articles/what-know-about-identity-theft"
+  },
+  {
+    "id": "fraud_005",
+    "title": "Phishing and Social Engineering",
+    "category": "social_engineering",
+    "description": "Phishing uses deceptive messages that appear to come from trusted organizations to persuade victims to reveal personal or financial information, visit fraudulent sites, or interact with malicious content.",
+    "indicators": [
+      "Unexpected requests for personal or financial information",
+      "Messages asking users to urgently click links",
+      "Messages impersonating trusted organizations",
+      "Requests to confirm account or payment information through unexpected communications"
+    ],
+    "recommended_actions": [
+      "Do not use links or attachments in suspicious messages",
+      "Contact organizations using independently verified contact information",
+      "Use multi-factor authentication",
+      "Report suspected phishing attempts"
+    ],
+    "source": "Federal Trade Commission",
+    "source_url": "https://consumer.ftc.gov/consumer-alerts/2025/04/protect-yourself-phishing-scams"
+  },
+  {
+    "id": "fraud_006",
+    "title": "Transaction Velocity Abuse",
+    "category": "behavioral_fraud",
+    "description": "Transaction velocity risk occurs when an unusually large number of transactions or payment attempts happen within a short period. High transaction volume can be associated with fraudulent activity and automated abuse.",
+    "indicators": [
+      "Large volume of transactions over a short period",
+      "Repeated payment attempts",
+      "Rapid increases in failed or blocked payments"
+    ],
+    "recommended_actions": [
+      "Apply transaction rate limits",
+      "Monitor payment velocity",
+      "Review unusually concentrated transaction activity",
+      "Apply additional controls to high-risk activity"
+    ],
+    "source": "Stripe",
+    "source_url": "https://docs.stripe.com/declines/card"
+  },
+  {
+    "id": "fraud_007",
+    "title": "Stolen Payment Card Fraud",
+    "category": "payment_fraud",
+    "description": "Stolen payment card fraud involves unauthorized use of compromised card information to make payments without the legitimate cardholder's permission.",
+    "indicators": [
+      "Payments later reported as unauthorized",
+      "Payment activity inconsistent with the cardholder's expected behavior",
+      "Card information associated with suspicious payment attempts"
+    ],
+    "recommended_actions": [
+      "Apply fraud screening before payment approval",
+      "Use additional verification for high-risk payments",
+      "Monitor disputes and unauthorized-payment reports"
+    ],
+    "source": "Stripe",
+    "source_url": "https://docs.stripe.com/disputes/prevention/fraud-types"
+  },
+  {
+    "id": "fraud_008",
+    "title": "Merchant Fraud",
+    "category": "merchant_fraud",
+    "description": "Merchant-related fraud can involve a merchant or associated party participating in fraudulent activity, submitting prohibited transactions, generating excessive fraudulent disputes, or colluding with others to commit fraud.",
+    "indicators": [
+      "Abnormal dispute activity",
+      "Suspicious merchant transaction patterns",
+      "Evidence of merchant collusion",
+      "Transactions inconsistent with the merchant's represented business activity"
+    ],
+    "recommended_actions": [
+      "Review suspicious merchant activity",
+      "Monitor dispute patterns",
+      "Investigate inconsistencies in merchant transaction behavior",
+      "Escalate suspected merchant abuse for further review"
+    ],
+    "source": "Visa",
+    "source_url": "https://developer.visa.com/capabilities/visa-merchant-screening-service/docs-how-to"
+  },
+  {
+    "id": "fraud_009",
+    "title": "Transaction Laundering",
+    "category": "merchant_fraud",
+    "description": "Transaction laundering occurs when the source of submitted payment transactions is misrepresented or when transactions are submitted on behalf of another merchant without appropriate authorization.",
+    "indicators": [
+      "Transactions inconsistent with the merchant's stated business",
+      "Possible submission of transactions for another merchant",
+      "Misrepresentation of the source of payment activity"
+    ],
+    "recommended_actions": [
+      "Investigate merchant transaction sources",
+      "Compare payment activity with the merchant's declared business",
+      "Escalate suspected transaction laundering for compliance review"
+    ],
+    "source": "Visa",
+    "source_url": "https://developer.visa.com/capabilities/visa-merchant-screening-service/docs-how-to"
+  },
+  {
+    "id": "fraud_010",
+    "title": "Unauthorized Payment Fraud",
+    "category": "payment_fraud",
+    "description": "Unauthorized payment fraud occurs when payment credentials are used without the legitimate owner's permission, potentially resulting in payments that the cardholder later identifies and disputes as fraudulent.",
+    "indicators": [
+      "Payments not recognized by the legitimate cardholder",
+      "Unexpected payment activity",
+      "Fraud-related disputes following completed payments"
+    ],
+    "recommended_actions": [
+      "Review suspicious transactions",
+      "Apply additional verification for high-risk payments",
+      "Monitor disputes and related transaction activity",
+      "Use fraud prevention controls before approving suspicious payments"
+    ],
+    "source": "Stripe",
+    "source_url": "https://docs.stripe.com/disputes/prevention/fraud-types"
+  }
+]
