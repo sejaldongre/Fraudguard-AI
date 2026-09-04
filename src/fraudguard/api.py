@@ -47,12 +47,36 @@ from .rag import (
 from .analyze import (
     analyze_transaction
 )
+
 from fastapi.middleware.cors import CORSMiddleware
+
+
 # --------------------------------------------------
 # ML / AI RESOURCES
 # --------------------------------------------------
 
 ml_resources = {}
+
+
+# --------------------------------------------------
+# LAZY EMBEDDING MODEL
+# --------------------------------------------------
+
+def get_embedding_model():
+
+    if "embedding_model" not in ml_resources:
+
+        print(
+            "Loading embedding model on demand..."
+        )
+
+        ml_resources[
+            "embedding_model"
+        ] = load_embedding_model()
+
+    return ml_resources[
+        "embedding_model"
+    ]
 
 
 # --------------------------------------------------
@@ -107,53 +131,6 @@ async def lifespan(app: FastAPI):
     )
 
     # ------------------------------------------
-    # LOAD EMBEDDING MODEL
-    # ------------------------------------------
-
-    print(
-        "Loading embedding model..."
-    )
-
-    ml_resources[
-        "embedding_model"
-    ] = load_embedding_model()
-
-    # ------------------------------------------
-    # CREATE KNOWLEDGE EMBEDDINGS
-    # ------------------------------------------
-
-    print(
-        "Creating knowledge embeddings..."
-    )
-
-    ml_resources[
-        "knowledge_embeddings"
-    ] = create_knowledge_embeddings(
-        ml_resources[
-            "embedding_model"
-        ],
-        ml_resources[
-            "knowledge"
-        ]
-    )
-
-    # ------------------------------------------
-    # CREATE FAISS INDEX
-    # ------------------------------------------
-
-    print(
-        "Creating FAISS index..."
-    )
-
-    ml_resources[
-        "faiss_index"
-    ] = create_faiss_index(
-        ml_resources[
-            "knowledge_embeddings"
-        ]
-    )
-
-    # ------------------------------------------
     # CREATE LLM CLIENT
     # ------------------------------------------
 
@@ -180,13 +157,6 @@ async def lifespan(app: FastAPI):
                 "knowledge"
             ]
         )
-    )
-
-    print(
-        "FAISS vectors:",
-        ml_resources[
-            "faiss_index"
-        ].ntotal
     )
 
     # ------------------------------------------
@@ -222,27 +192,33 @@ app = FastAPI(
 
     lifespan=lifespan
 )
+
+
 # --------------------------------------------------
 # CORS CONFIGURATION
 # --------------------------------------------------
 
 app.add_middleware(
     CORSMiddleware,
+
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
     ],
+
     allow_credentials=True,
+
     allow_methods=["*"],
+
     allow_headers=["*"],
 )
+
 
 # --------------------------------------------------
 # INPUT SCHEMA
 # --------------------------------------------------
-
 
 class Transaction(BaseModel):
 
@@ -462,10 +438,11 @@ class AnalyzeResponse(BaseModel):
     ]
 
     analyst_report: str
+
+
 # --------------------------------------------------
 # ROOT ENDPOINT
 # --------------------------------------------------
-
 
 @app.get("/")
 def root():
@@ -517,8 +494,6 @@ def health_check():
         model_loaded,
         explainer_loaded,
         knowledge_loaded,
-        embedding_model_loaded,
-        faiss_loaded,
         llm_client_loaded
     ])
 
@@ -689,16 +664,45 @@ def retrieve_fraud_knowledge(
 
     try:
 
+        embedding_model = (
+            get_embedding_model()
+        )
+
+        # --------------------------------------
+        # CREATE FAISS INDEX IF NEEDED
+        # --------------------------------------
+
+        if "faiss_index" not in ml_resources:
+
+            print(
+                "Creating FAISS index on demand..."
+            )
+
+            knowledge_embeddings = (
+                create_knowledge_embeddings(
+                    embedding_model,
+                    ml_resources["knowledge"]
+                )
+            )
+
+            ml_resources[
+                "faiss_index"
+            ] = create_faiss_index(
+                knowledge_embeddings
+            )
+
+            del knowledge_embeddings
+
+        # --------------------------------------
+        # SEARCH KNOWLEDGE
+        # --------------------------------------
+
         results = (
             search_fraud_knowledge(
 
                 query=request.query,
 
-                embedding_model=(
-                    ml_resources[
-                        "embedding_model"
-                    ]
-                ),
+                embedding_model=embedding_model,
 
                 index=(
                     ml_resources[
@@ -758,6 +762,35 @@ def retrieve_from_context(
 
     try:
 
+        embedding_model = (
+            get_embedding_model()
+        )
+
+        # --------------------------------------
+        # BUILD FAISS INDEX IF NEEDED
+        # --------------------------------------
+
+        if "faiss_index" not in ml_resources:
+
+            print(
+                "Creating FAISS index on demand..."
+            )
+
+            knowledge_embeddings = (
+                create_knowledge_embeddings(
+                    embedding_model,
+                    ml_resources["knowledge"]
+                )
+            )
+
+            ml_resources[
+                "faiss_index"
+            ] = create_faiss_index(
+                knowledge_embeddings
+            )
+
+            del knowledge_embeddings
+
         # --------------------------------------
         # CONVERT CONTEXT TO DICTIONARY
         # --------------------------------------
@@ -785,11 +818,7 @@ def retrieve_from_context(
 
                 query=query,
 
-                embedding_model=(
-                    ml_resources[
-                        "embedding_model"
-                    ]
-                ),
+                embedding_model=embedding_model,
 
                 index=(
                     ml_resources[
@@ -831,6 +860,10 @@ def retrieve_from_context(
             )
         )
 
+
+# --------------------------------------------------
+# ANALYZE ENDPOINT
+# --------------------------------------------------
 
 @app.post(
     "/analyze",
@@ -881,6 +914,39 @@ def analyze(
         )
 
         # --------------------------------------
+        # LAZY LOAD EMBEDDING MODEL
+        # --------------------------------------
+
+        embedding_model = (
+            get_embedding_model()
+        )
+
+        # --------------------------------------
+        # CREATE FAISS INDEX IF NEEDED
+        # --------------------------------------
+
+        if "faiss_index" not in ml_resources:
+
+            print(
+                "Creating FAISS index on demand..."
+            )
+
+            knowledge_embeddings = (
+                create_knowledge_embeddings(
+                    embedding_model,
+                    ml_resources["knowledge"]
+                )
+            )
+
+            ml_resources[
+                "faiss_index"
+            ] = create_faiss_index(
+                knowledge_embeddings
+            )
+
+            del knowledge_embeddings
+
+        # --------------------------------------
         # RAG + LLM ANALYSIS
         # --------------------------------------
 
@@ -892,11 +958,7 @@ def analyze(
 
             context=context_data,
 
-            embedding_model=(
-                ml_resources[
-                    "embedding_model"
-                ]
-            ),
+            embedding_model=embedding_model,
 
             faiss_index=(
                 ml_resources[
