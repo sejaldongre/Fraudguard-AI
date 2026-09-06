@@ -1,59 +1,60 @@
+from contextlib import asynccontextmanager
+
 import joblib
-from fastapi.middleware.cors import CORSMiddleware
-from .analyze import (
-    analyze_transaction
+import shap
+
+from fastapi import (
+    FastAPI,
+    HTTPException
 )
-from .rag import (
-    create_llm_client
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field
 )
-from .context import (
-    build_context_query
+
+from .config import FRAUD_THRESHOLD
+
+from .predict import (
+    MODEL_PATH,
+    predict_transaction
 )
+
+from .explain import (
+    explain_transaction
+)
+
+from .knowledge import (
+    load_fraud_knowledge
+)
+
 from .retrieval import (
     load_embedding_model,
     create_knowledge_embeddings,
     create_faiss_index,
     search_fraud_knowledge
 )
-from .knowledge import (
-    load_fraud_knowledge
-)
-from .explain import (
-    explain_transaction
-)
-from .predict import (
-    MODEL_PATH,
-    predict_transaction
-)
-from .config import FRAUD_THRESHOLD
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field
-)
-from fastapi import (
-    FastAPI,
-    HTTPException
-)
-import shap
-from contextlib import asynccontextmanager
 
+from .context import (
+    build_context_query
+)
 
-def log_memory(label: str):
-    try:
-        with open("/proc/self/status", "r") as f:
-            for line in f:
-                if line.startswith("VmRSS:"):
-                    memory_mb = int(line.split()[1]) / 1024
-                    print(f"[MEMORY] {label}: {memory_mb:.1f} MB")
-                    return
-    except Exception as e:
-        print(f"[MEMORY] Could not read memory: {e}")
+from .rag import (
+    create_llm_client
+)
+
+from .analyze import (
+    analyze_transaction
+)
+
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # --------------------------------------------------
 # ML / AI RESOURCES
 # --------------------------------------------------
+
 ml_resources = {}
 
 
@@ -65,8 +66,6 @@ def get_embedding_model():
 
     if "embedding_model" not in ml_resources:
 
-        log_memory("before embedding model")
-
         print(
             "Loading embedding model on demand..."
         )
@@ -74,8 +73,6 @@ def get_embedding_model():
         ml_resources[
             "embedding_model"
         ] = load_embedding_model()
-
-        log_memory("after embedding model")
 
     return ml_resources[
         "embedding_model"
@@ -676,8 +673,6 @@ def retrieve_fraud_knowledge(
 
         if "faiss_index" not in ml_resources:
 
-            log_memory("before FAISS")
-
             print(
                 "Creating FAISS index on demand..."
             )
@@ -696,8 +691,6 @@ def retrieve_fraud_knowledge(
             )
 
             del knowledge_embeddings
-
-            log_memory("after FAISS")
 
         # --------------------------------------
         # SEARCH KNOWLEDGE
@@ -778,8 +771,6 @@ def retrieve_from_context(
 
         if "faiss_index" not in ml_resources:
 
-            log_memory("before FAISS")
-
             print(
                 "Creating FAISS index on demand..."
             )
@@ -798,8 +789,6 @@ def retrieve_from_context(
             )
 
             del knowledge_embeddings
-
-            log_memory("after FAISS")
 
         # --------------------------------------
         # CONVERT CONTEXT TO DICTIONARY
@@ -937,8 +926,6 @@ def analyze(
 
         if "faiss_index" not in ml_resources:
 
-            log_memory("before FAISS")
-
             print(
                 "Creating FAISS index on demand..."
             )
@@ -957,8 +944,6 @@ def analyze(
             )
 
             del knowledge_embeddings
-
-            log_memory("after FAISS")
 
         # --------------------------------------
         # RAG + LLM ANALYSIS

@@ -1,7 +1,7 @@
 import numpy as np
 import faiss
 
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 from .knowledge import knowledge_to_text
 
@@ -10,10 +10,70 @@ from .knowledge import knowledge_to_text
 # EMBEDDING MODEL CONFIGURATION
 # --------------------------------------------------
 
-EMBEDDING_MODEL_NAME = (
-    "sentence-transformers/"
-    "all-MiniLM-L6-v2"
-)
+EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+
+
+# --------------------------------------------------
+# FASTEMBED WRAPPER
+# --------------------------------------------------
+
+class FraudGuardEmbeddingModel:
+    """
+    Lightweight embedding adapter for FraudGuard.
+
+    Uses FastEmbed/ONNX Runtime instead of
+    Sentence Transformers/PyTorch so the API can
+    run within Render's memory-constrained instance.
+    """
+
+    def __init__(self):
+        self.model = TextEmbedding(
+            model_name=EMBEDDING_MODEL_NAME,
+            threads=1,
+            lazy_load=True,
+        )
+
+    def encode(
+        self,
+        texts,
+        normalize_embeddings=True,
+        is_query=False,
+        **kwargs,
+    ) -> np.ndarray:
+        """
+        Generate embeddings with a SentenceTransformer-like
+        interface so the rest of FraudGuard does not need
+        to change.
+        """
+
+        texts = list(texts)
+
+        if is_query:
+            embeddings = list(
+                self.model.query_embed(texts)
+            )
+        else:
+            embeddings = list(
+                self.model.passage_embed(texts)
+            )
+
+        embeddings = np.asarray(
+            embeddings,
+            dtype="float32",
+        )
+
+        if normalize_embeddings:
+            norms = np.linalg.norm(
+                embeddings,
+                axis=1,
+                keepdims=True,
+            )
+            embeddings = embeddings / np.maximum(
+                norms,
+                1e-12,
+            )
+
+        return embeddings
 
 
 # --------------------------------------------------
@@ -22,16 +82,12 @@ EMBEDDING_MODEL_NAME = (
 
 def load_embedding_model():
     """
-    Load the Sentence Transformer model used
-    to generate embeddings for fraud knowledge
-    and search queries.
+    Load the lightweight FastEmbed model used to
+    generate embeddings for fraud knowledge and
+    search queries.
     """
 
-    model = SentenceTransformer(
-        EMBEDDING_MODEL_NAME
-    )
-
-    return model
+    return FraudGuardEmbeddingModel()
 
 
 # --------------------------------------------------
@@ -52,26 +108,19 @@ def create_knowledge_embeddings(
             "Knowledge base cannot be empty."
         )
 
-    # Convert each structured knowledge document
-    # into embedding-ready text
     texts = [
         knowledge_to_text(pattern)
         for pattern in knowledge
     ]
 
-    # Generate normalized embeddings
     embeddings = embedding_model.encode(
         texts,
         convert_to_numpy=True,
-        normalize_embeddings=True
+        normalize_embeddings=True,
+        is_query=False,
     )
 
-    # FAISS expects float32 vectors
-    embeddings = embeddings.astype(
-        "float32"
-    )
-
-    return embeddings
+    return embeddings.astype("float32")
 
 
 # --------------------------------------------------
@@ -84,41 +133,24 @@ def create_faiss_index(
     """
     Create a FAISS inner-product index.
 
-    Because our embeddings are normalized,
+    Because embeddings are normalized,
     inner product behaves like cosine similarity.
     """
 
-    # Check that embeddings exist
     if embeddings.size == 0:
         raise ValueError(
             "Embeddings cannot be empty."
         )
 
-    # Embeddings should have shape:
-    # (number_of_documents, dimensions)
     if embeddings.ndim != 2:
         raise ValueError(
-            "Embeddings must be a "
-            "2-dimensional array."
+            "Embeddings must be a 2-dimensional array."
         )
-
-    # Example:
-    # (10, 384)
-    #
-    # 10  = documents
-    # 384 = embedding dimensions
 
     dimension = embeddings.shape[1]
 
-    # Create FAISS index
-    index = faiss.IndexFlatIP(
-        dimension
-    )
-
-    # Add knowledge embeddings
-    index.add(
-        embeddings
-    )
+    index = faiss.IndexFlatIP(dimension)
+    index.add(embeddings)
 
     return index
 
@@ -137,15 +169,7 @@ def search_fraud_knowledge(
     """
     Search the fraud knowledge base using
     semantic similarity.
-
-    Returns the top matching fraud patterns
-    together with their similarity scores
-    and source information.
     """
-
-    # --------------------------------------------------
-    # VALIDATE QUERY
-    # --------------------------------------------------
 
     if not isinstance(query, str):
         raise ValueError(
@@ -157,18 +181,10 @@ def search_fraud_knowledge(
             "Search query cannot be empty."
         )
 
-    # --------------------------------------------------
-    # VALIDATE KNOWLEDGE
-    # --------------------------------------------------
-
     if not knowledge:
         raise ValueError(
             "Knowledge base cannot be empty."
         )
-
-    # --------------------------------------------------
-    # VALIDATE TOP_K
-    # --------------------------------------------------
 
     if not isinstance(top_k, int):
         raise ValueError(
@@ -180,98 +196,45 @@ def search_fraud_knowledge(
             "top_k must be greater than 0."
         )
 
-    # We cannot retrieve more documents
-    # than actually exist.
-    top_k = min(
-        top_k,
-        len(knowledge)
+    top_k = min(top_k, len(knowledge))
+
+    query_embedding = embedding_model.encode(
+        [query],
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+        is_query=True,
     )
 
-    # --------------------------------------------------
-    # CREATE QUERY EMBEDDING
-    # --------------------------------------------------
-
-    query_embedding = (
-        embedding_model.encode(
-            [query],
-            convert_to_numpy=True,
-            normalize_embeddings=True
-        )
-    )
-
-    # FAISS expects float32
-    query_embedding = (
-        query_embedding.astype(
-            "float32"
-        )
-    )
-
-    # --------------------------------------------------
-    # SEARCH FAISS
-    # --------------------------------------------------
+    query_embedding = query_embedding.astype("float32")
 
     scores, indices = index.search(
         query_embedding,
-        top_k
+        top_k,
     )
-
-    # --------------------------------------------------
-    # BUILD RESULTS
-    # --------------------------------------------------
 
     results = []
 
     for score, index_position in zip(
         scores[0],
-        indices[0]
+        indices[0],
     ):
-
-        # Defensive check.
-        # FAISS can return -1 when a requested
-        # neighbor is unavailable.
         if index_position < 0:
             continue
 
-        pattern = knowledge[
-            int(index_position)
-        ]
+        pattern = knowledge[int(index_position)]
 
         result = {
             "id": pattern["id"],
-
             "title": pattern["title"],
-
-            "category": pattern[
-                "category"
-            ],
-
-            "description": pattern[
-                "description"
-            ],
-
-            "indicators": pattern[
-                "indicators"
-            ],
-
-            "recommended_actions": pattern[
-                "recommended_actions"
-            ],
-
-            "source": pattern[
-                "source"
-            ],
-
-            "source_url": pattern[
-                "source_url"
-            ],
-
-            "similarity_score": float(
-                score
-            )
+            "category": pattern["category"],
+            "description": pattern["description"],
+            "indicators": pattern["indicators"],
+            "recommended_actions": pattern["recommended_actions"],
+            "source": pattern["source"],
+            "source_url": pattern["source_url"],
+            "similarity_score": float(score),
         }
 
-        results.append(
-            result
-        )
+        results.append(result)
 
     return results

@@ -60,3 +60,5 @@ yarn-error.log*
 
 .DS_Store
 Thumbs.db
+# Local backup before FastEmbed migration
+backup_before_fastembed/
