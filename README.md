@@ -14,7 +14,7 @@ Instead of returning only a fraud probability, FraudGuard provides model explana
 
 - 🧠 **XGBoost fraud detection** — predicts transaction fraud probability and risk level.
 - 📊 **SHAP explainability** — shows which anonymized transaction features influenced the prediction.
-- 🔎 **Semantic retrieval** — uses Sentence Transformers and FAISS to retrieve relevant fraud patterns.
+- 🔎 **Semantic retrieval** — uses FastEmbedand FAISS to retrieve relevant fraud patterns.
 - 🤖 **Grounded AI analyst** — combines model evidence, transaction context, and retrieved knowledge into a structured report.
 - 💻 **Interactive dashboard** — supports Fraud Demo, Legitimate Demo, and Custom Transaction analysis.
 - 🧪 **Automated testing** — covers API behavior, retrieval, context generation, and RAG grounding rules.
@@ -92,7 +92,7 @@ Because the dataset is highly imbalanced, metrics such as **precision, recall, F
 
 FraudGuard converts interpretable transaction context into natural-language queries and embeds them using:
 
-**Sentence Transformers — `all-MiniLM-L6-v2`**
+**FastEmbed— `BAAI/bge-small-en-v1.5`**
 
 The normalized embeddings are searched against a curated fraud knowledge base using **FAISS**.
 
